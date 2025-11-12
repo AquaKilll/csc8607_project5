@@ -17,7 +17,7 @@ preprocess:
   # transformations de base (ex: resize, normalize)
   resize:                   # ex: [32, 32] ou null
   normalize:                # ex: {"mean": [0.5,0.5,0.5], "std":[0.5,0.5,0.5]} ou null
-  text_tokenizer:           # pour NLP : nom ou paramètres, sinon null
+  text_tokenizer: "basic_english"          # pour NLP : nom ou paramètres, sinon null
 
 augment:
   # data augmentation (laisser null si non utilisée)

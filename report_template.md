@@ -10,10 +10,10 @@
 
 ## 0) Informations générales
 
-- **Étudiant·e** : _Nom, Prénom_
-- **Projet** : _Intitulé (dataset × modèle)_
-- **Dépôt Git** : _URL publique_
-- **Environnement** : `python == ...`, `torch == ...`, `cuda == ...`  
+- **Étudiant·e** : _Davoust, Kilian_
+- **Projet** : _IMDb (analyse de sentiments binaire) avec BiLSTM et attention_
+- **Dépôt Git** : _[URL publique](https://huggingface.co/datasets/stanfordnlp/imdb)_
+- **Environnement** : `python == 3.12.3`, `torch == 2.8.0`, `cuda == None`  
 - **Commandes utilisées** :
   - Entraînement : `python -m src.train --config configs/config.yaml`
   - LR finder : `python -m src.lr_finder --config configs/config.yaml`
@@ -25,26 +25,50 @@
 ## 1) Données
 
 ### 1.1 Description du dataset
-- **Source** (lien) :
-- **Type d’entrée** (image / texte / audio / séries) :
-- **Tâche** (multiclasses, multi-label, régression) :
-- **Dimensions d’entrée attendues** (`meta["input_shape"]`) :
-- **Nombre de classes** (`meta["num_classes"]`) :
+- **Source** (lien) : https://huggingface.co/datasets/stanfordnlp/imdb
+- **Type d’entrée** (image / texte / audio / séries) : Texte
+- **Tâche** (multiclasses, multi-label, régression) : Classification binaire (sentiment positif/négatif)
+- **Dimensions d’entrée attendues** (`meta["input_shape"]`) : (256,)
+- **Nombre de classes** (`meta["num_classes"]`) : 1
 
 **D1.** Quel dataset utilisez-vous ? D’où provient-il et quel est son format (dimensions, type d’entrée) ?
+
+Dataset IMDb (Large Movie Review Dataset) provenant de https://huggingface.co/datasets/stanfordnlp/imdb.
+Contient 50,000 critiques de films en anglais pour analyse de sentiment. 
+Après tokenization et padding, chaque critique est représentée par une séquence de 256 indices de tokens (vocab de 10,002 mots). 
+Format d'entrée : `(batch_size, 256)` de type `torch.long`. 
+Sortie : 1 logit pour classification binaire avec `BCEWithLogitsLoss`.
 
 ### 1.2 Splits et statistiques
 
 | Split | #Exemples | Particularités (déséquilibre, longueur moyenne, etc.) |
-|------:|----------:|--------------------------------------------------------|
-| Train |           |                                                        |
-| Val   |           |                                                        |
-| Test  |           |                                                        |
+| ----: | --------: | ----------------------------------------------------- |
+| Train |    20 000 | (80% du train original)                               |
+|   Val |     5 000 | (20% du train original)                               |
+|  Test |    25 000 | (split test original)                                 |
 
-**D2.** Donnez la taille de chaque split et le nombre de classes.  
+**D2.** Donnez la taille de chaque split et le nombre de classes.
+
+Train : 25 000 exemples (avant split) avec 20 000 pour l'entraînement après split 80/20 
+Val : 5 000 exemples
+Test : 25 000 exemples (split test original)
+Nombre de classes : 2 classes (positif/négatif)
+
 **D3.** Si vous avez créé un split (ex. validation), expliquez **comment** (stratification, ratio, seed).
 
+Oui, un split de validation a été créé car le dataset IMDb ne fournit que les splits train et test.
+
+Méthode : `torch.utils.data.random_split()` sur le train original (25,000 exemples)
+Ratio : 80/20 (train/val)
+  Train final : 20,000 exemples
+  Validation : 5,000 exemples
+Seed : 42 (fixé via `torch.Generator().manual_seed(42)`)
+Stratification : Non appliquée (split aléatoire simple), mais le dataset original étant parfaitement équilibré (50/50), le split résultant conserve approximativement cet équilibre.
+
+Cette approche garantit la reproductibilité des expériences tout en préservant l'équilibre des classes.
+
 **D4.** Donnez la **distribution des classes** (graphique ou tableau) et commentez en 2–3 lignes l’impact potentiel sur l’entraînement.  
+
 **D5.** Mentionnez toute particularité détectée (tailles variées, longueurs variables, multi-labels, etc.).
 
 ### 1.3 Prétraitements (preprocessing) — _appliqués à train/val/test_
@@ -158,10 +182,10 @@ Expliquez le rôle des **2 hyperparamètres spécifiques au modèle** (ceux impo
 
 - **Durée des runs** : `_____` époques par run (1–5 selon dataset), même seed
 
-| Run (nom explicite) | LR    | WD     | Hyp-A | Hyp-B | Val metric (nom=_____) | Val loss | Notes |
-|---------------------|-------|--------|-------|-------|-------------------------|----------|-------|
-|                     |       |        |       |       |                         |          |       |
-|                     |       |        |       |       |                         |          |       |
+| Run (nom explicite) | LR  | WD  | Hyp-A | Hyp-B | Val metric (nom=_____) | Val loss | Notes |
+| ------------------- | --- | --- | ----- | ----- | ---------------------- | -------- | ----- |
+|                     |     |     |       |       |                        |          |       |
+|                     |     |     |       |       |                        |          |       |
 
 > _Insérer capture TensorBoard (onglet HParams/Scalars) ou tableau récapitulatif._
 
