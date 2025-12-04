@@ -91,13 +91,43 @@ Listez précisément les opérations et paramètres (valeurs **fixes**) :
 
 - Vision : resize = __, center-crop = __, normalize = (mean=__, std=__)…
 - Audio : resample = __ Hz, mel-spectrogram (n_mels=__, n_fft=__, hop_length=__), AmplitudeToDB…
-- NLP : tokenizer = Tokenization par regex `\b\w+\b` (extraction des mots, conversion en minuscules), vocab = 10,002 tokens (10,000 mots les plus fréquents + `<unk>` + `<pad>`)
-  - `<pad>` : index 0 (pour padding)
-  - `<unk>` : index 1 (pour mots inconnus), max_length = 256 tokens, padding/truncation = Séquences > 256 tokens : **troncature** à 256 / Séquences < 256 tokens : **padding** avec token `<pad>` (index 0)
+- NLP : tokenizer = Tokenization par regex `\b\w+\b` (extraction des mots, conversion en minuscules), vocab = 10 002, max_length = 256 tokens, padding/truncation = 256/256
 - Séries : normalisation par canal, fenêtrage = __…
 
-**D6.** Quels **prétraitements** avez-vous appliqués (opérations + **paramètres exacts**) et **pourquoi** ?  
+**D6.** Quels **prétraitements** avez-vous appliqués (opérations + **paramètres exacts**) et **pourquoi** ?
+
+1. Tokenization (regex `\b\w+\b` + lowercase)*
+- Opération : Conversion du texte en minuscules puis extraction des mots par expression régulière
+- Pourquoi : Simplifie le vocabulaire en évitant les doublons de casse ("Movie" vs "movie") et extrait uniquement les mots alphanumériques, éliminant la ponctuation qui apporte peu d'information pour l'analyse de sentiment
+
+2. Construction du vocabulaire (top 10,000 mots)
+- Paramètres : 10,000 mots les plus fréquents + `<pad>` (index 0) + `<unk>` (index 1)
+- Pourquoi : Limite la taille de la matrice d'embeddings (réduction mémoire/calcul) tout en conservant ~95% de la couverture du corpus. Les mots rares apportent peu d'information discriminante pour la classification
+
+1. Padding/Truncation (max_length = 256)
+- Opération : 
+  - Séquences > 256 tokens → troncature aux 256 premiers tokens
+  - Séquences < 256 tokens → ajout de `<pad>` jusqu'à 256
+- Pourquoi : Nécessaire pour le traitement en batch (tenseurs de taille fixe). 256 tokens représentent un bon compromis : suffisamment long pour capturer l'essentiel d'une critique (~230 mots en moyenne) tout en restant computationnellement raisonnable pour le LSTM
+
+4. Conversion en indices (tokens → integers)
+- Opération : Mapping de chaque token vers son index dans le vocabulaire (mots inconnus → index 1)
+- Pourquoi : Format d'entrée requis pour la couche `nn.Embedding` qui transforme les indices en vecteurs denses
+
+Aucune normalisation ou augmentation n'est appliquée à ce stade (pas de synonym replacement, back-translation, etc.).
+
 **D7.** Les prétraitements diffèrent-ils entre train/val/test (ils ne devraient pas, sauf recadrage non aléatoire en val/test) ?
+
+Non, les prétraitements sont strictement identiques pour les trois splits (train/val/test) :
+
+- Même tokenizer : regex `\b\w+\b` + lowercase
+- Même vocabulaire : construit uniquement sur le train, puis appliqué de manière identique sur val et test
+- Mêmes paramètres : max_length = 256, padding/truncation identiques
+- Pas d'augmentation : aucune opération aléatoire (pas de synonym replacement, dropout de mots, etc.)
+
+Justification : En NLP comme en vision, les prétraitements déterministes (tokenization, padding) doivent être identiques pour garantir que le modèle voit les mêmes types d'entrées à l'entraînement et à l'évaluation. Le vocabulaire est figé après construction sur le train pour simuler des conditions réelles (mots inconnus en test = `<unk>`).
+
+Seule différence : Le shuffle des DataLoaders (`shuffle=True` pour train, `shuffle=False` pour val/test), mais cela n'affecte pas les données elles-mêmes, uniquement l'ordre de présentation.
 
 ### 1.4 Augmentation de données — _train uniquement_
 
@@ -106,8 +136,25 @@ Listez précisément les opérations et paramètres (valeurs **fixes**) :
   - Audio : time/freq masking (taille, nb masques) …
   - Séries : jitter amplitude=__, scaling=__ …
 
-**D8.** Quelles **augmentations** avez-vous appliquées (paramètres précis) et **pourquoi** ?  
+**D8.** Quelles **augmentations** avez-vous appliquées (paramètres précis) et **pourquoi** ? 
+
+Aucune augmentation de données n'a été appliquée.
+
+Justification :
+- Pour ce projet, nous nous concentrons sur l'architecture de base du BiLSTM + Attention sans augmentation
+- Les techniques d'augmentation en NLP (synonym replacement, back-translation, word dropout, etc.) sont plus complexes à implémenter et peuvent introduire du bruit sémantique
+- Le dataset IMDb est suffisamment large (20,000 exemples d'entraînement) pour entraîner le modèle sans sur-apprentissage immédiat
+- Le dropout (p=0.3) intégré dans le modèle joue déjà un rôle de régularisation
+
+Augmentations possibles (non implémentées) :
+- Synonym replacement : remplacement aléatoire de N mots par leurs synonymes (p=0.1, N=2-3)
+- Random deletion : suppression aléatoire de mots (p=0.1)
+- Random swap : permutation aléatoire de mots adjacents (p=0.1)
+- Back-translation : traduction vers une langue intermédiaire puis retour en anglais
+
 **D9.** Les augmentations **conservent-elles les labels** ? Justifiez pour chaque transformation retenue.
+
+Aucune augmentation n'est appliquée dans ce projet, donc la question de conservation des labels ne se pose pas.
 
 ### 1.5 Sanity-checks
 
@@ -115,8 +162,53 @@ Listez précisément les opérations et paramètres (valeurs **fixes**) :
 
 > _Insérer ici 2–3 captures illustrant les données après transformation._
 
-**D10.** Montrez 2–3 exemples et commentez brièvement.  
-**D11.** Donnez la **forme exacte** d’un batch train (ex. `(batch, C, H, W)` ou `(batch, seq_len)`), et vérifiez la cohérence avec `meta["input_shape"]`.
+**D10.** Montrez 2–3 exemples et commentez brièvement.
+
+Retour console après lancement commande : python -m src.tests.visualize_preprocessing
+
+--- Exemple 1 ---
+Label: NÉGATIF ✗
+Longueur: 256 tokens (+ 0 padding)
+Texte (50 premiers mots): the fallen ones starts with <unk> matt <unk> casper van <unk> in the desert discovering the <unk> remains of a <unk> foot tall giant now there s something you don t see everyday matt is working for property <unk> <unk> robert wagner who wants to build a holiday resort on...
+
+--- Exemple 2 ---
+Label: POSITIF ✓
+Longueur: 256 tokens (+ 0 padding)
+Texte (50 premiers mots): this movie is not a kung fu movie this is a comedy about kung fu and if before making this film sammo hung hadn t spent some time watching films by the great french comic filmmaker <unk> <unk> i ie e g <unk> <unk> de <unk> he is certainly on...
+
+--- Exemple 3 ---
+Label: POSITIF ✓
+Longueur: 182 tokens (+ 74 padding)
+Texte (50 premiers mots): pleasant story of the community of <unk> in london who after an <unk> ww2 bomb explodes find a royal <unk> stating that the area they live in forms part of <unk> br br this movie works because it appeals to the fantasy a lot of us have about making up...
+
+Observation : Les critiques conservent clairement leur sentiment après preprocessing (vocabulaire positif/négatif intact), les longueurs variables sont correctement normalisées à 256 tokens via padding/truncation, et les quelques tokens `<unk>` (mots rares) n'altèrent pas le sens global. Le preprocessing transforme efficacement le texte brut en séquences numériques exploitables par le BiLSTM tout en préservant l'information sémantique nécessaire à la classification.
+
+**D11.** Donnez la **forme exacte** d'un batch train (ex. `(batch, C, H, W)` ou `(batch, seq_len)`), et vérifiez la cohérence avec `meta["input_shape"]`.
+
+Forme d'un batch d'entrée (inputs) :
+- Shape : `(batch_size, 256)` ou plus généralement `(batch_size, seq_len)`
+- Exemple concret avec batch_size=64 : `torch.Size([64, 256])`
+- Dtype : `torch.long` (indices de tokens entiers)
+- Range : `[0, 10001]` (indices du vocabulaire)
+
+Forme d'un batch de labels :
+- Shape : `(batch_size,)` 
+- Exemple concret avec batch_size=64 : `torch.Size([64])`
+- Dtype : `torch.float32` (pour BCEWithLogitsLoss)
+- Range : `{0.0, 1.0}` (0=négatif, 1=positif)
+
+Vérification de cohérence avec `meta["input_shape"]` :
+- `meta["input_shape"]` = `(256,)`
+- Batch shape = `(batch_size, 256)`
+- Cohérence vérifiée : la dimension de séquence (256) correspond bien à `meta["input_shape"][0]`
+
+Résumé :
+```python
+# Un batch typique
+inputs.shape  # torch.Size([64, 256])  - 64 critiques de 256 tokens
+labels.shape  # torch.Size([64])        - 64 labels binaires
+meta["input_shape"]  # (256,)          - longueur de séquence attendue
+```
 
 ---
 
