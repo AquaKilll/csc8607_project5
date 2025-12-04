@@ -1,0 +1,30 @@
+EXEMPLES APRÈS PREPROCESSING - IMDb Dataset
+================================================================================
+
+--- Exemple 1 ---
+Label: POSITIF (valeur: 1.0)
+Longueur: 256 tokens (padding: 0)
+Shape: (256,) - dtype: int64
+Texte complet:
+robert stack never really got over losing a best supporting actor oscar for his role as kyle in written on the wind to anthony quinn s 12 minute performance in lust for life stack plays the deeply disturbed alcoholic son of an oil <unk> he has lived his life in the shadow of the friend with whom he was raised mitch played by rock hudson they both love the same woman lucy lauren bacall who becomes kyle s wife kyle s sister <unk> dorothy malone is a drunken slut who s in love with mitch their story plays out in glorious color under the able direction of douglas sirk who really dominated the melodrama field with some incredible films including imitation of life all that heaven allows magnificent obsession and many others br br make no mistake this is a <unk> and stack and dorothy malone make the most of their roles malone winning a best supporting actress oscar there s one amazing scene mentioned in other comments where she wildly dances to loud music as her father <unk> and dies on the <unk> we re led to believe that <unk> sleeps with everyone including the guy that <unk> the gas because she s in love with mitch mitch wants nothing to do with her he s so in love with lucy that out of loyalty to kyle he wants to go to work in iran to avoid temptation i doubt he d be so anxious to get there today no matter how much in love
+
+--------------------------------------------------------------------------------
+
+--- Exemple 2 ---
+Label: POSITIF (valeur: 1.0)
+Longueur: 256 tokens (padding: 0)
+Shape: (256,) - dtype: int64
+Texte complet:
+how you could say that <unk> with its complex narrative dealing with a <unk> of issues is a small tv idea is beyond me besides i can think of many films that have a small tv idea in their plots your obvious dislike of the tv industry sue smith has failed to rise above her television background is confusing particularly as you are having such a great time working in tv if only we could all be so talented as ms smith no i am not a friend or relative <unk> award winning brides of christ road from <unk> etc all made for tv come to think of it what about those other small tv ideas like against the wind <unk> the <unk> <unk> of justice blue murder water under the bridge etc i think <unk> is a good entertaining film which had me interested and most of my friends as well from start to finish it is far from flawless yet i think it is among the best australian films i have seen over the last couple of years who knows with a few more viewings there s so much to think about it might just be up there with classics like the year my voice broke the devil s <unk> i really did enjoy this film much more than <unk> and three dollars these films i think had their moments surreal atmospheric realistic and dealing with important contemporary issues but as for sheer entertainment for mr and mrs average movie goer and me it
+
+--------------------------------------------------------------------------------
+
+--- Exemple 3 ---
+Label: NÉGATIF (valeur: 0.0)
+Longueur: 256 tokens (padding: 0)
+Shape: (256,) - dtype: int64
+Texte complet:
+let s hope this is the final nightmare this is the epitome of a good thing gone bad okay there is still some enjoyment to be had but only in the most mundane sense rachel <unk> had been there for the duration of this franchise had been on the production staff and produced even i don t know what she was thinking but this <unk> comes complete with the human video game boy and a guest appearance by br br tom and <unk> arnold i wish i had a clue what she was thinking when she wrote directed this disappointing piece of garbage she even tried to distract her audience from the fact that this movie was nothing more than an over <unk> popcorn movie instead of bearing any resemblance to horror with the contrived use of a 3d ending aren t those glasses nifty and you get to keep them it s the equivalent of you just spent 9 00 making me rich here s 10 cents now don t you feel special sorry but for me it just did not make me feel special br br and freddy s had yet another face lift this one was for the worst i think all the beautiful artistry that went into his look in the earlier films has been replaced by an obviously cheaper less detailed set of <unk> he looks less like the burn victim he is supposed to be and more like he has a skin disorder changing the lead s makeup like that
+
+--------------------------------------------------------------------------------
+

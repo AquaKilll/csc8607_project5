@@ -3,7 +3,6 @@
 .env/
 __pycache__/
 .ipynb_checkpoints/
-artifacts/
 
 # Données & sorties
 data/
