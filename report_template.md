@@ -67,9 +67,23 @@ Stratification : Non appliquée (split aléatoire simple), mais le dataset origi
 
 Cette approche garantit la reproductibilité des expériences tout en préservant l'équilibre des classes.
 
-**D4.** Donnez la **distribution des classes** (graphique ou tableau) et commentez en 2–3 lignes l’impact potentiel sur l’entraînement.  
+**D4.** Donnez la **distribution des classes** (graphique ou tableau) et commentez en 2–3 lignes l’impact potentiel sur l’entraînement.
+
+| Split      | Négatif | Positif | Total  | Balance |
+| ---------- | ------: | ------: | -----: | ------: |
+| Train      |   9,987 |  10,013 | 20,000 |   50.1% |
+| Validation |   2,513 |   2,487 |  5,000 |   49.7% |
+| Test       |  12,500 |  12,500 | 25,000 |   50.0% |
+
+Le dataset est quasi-parfaitement équilibré (~50% par classe dans tous les splits). Cet équilibre est idéal pour l'entraînement : aucune pondération des classes n'est nécessaire, l'accuracy est une métrique fiable (baseline aléatoire à 50%), et le modèle ne sera pas biaisé vers une classe particulière. Cela permet une évaluation objective des performances sans ajustement spécifique pour gérer un déséquilibre.
 
 **D5.** Mentionnez toute particularité détectée (tailles variées, longueurs variables, multi-labels, etc.).
+
+Longueurs variables : Les critiques IMDb ont des longueurs très hétérogènes (de quelques mots à plusieurs centaines). Pour gérer cela, toutes les séquences sont tronquées à 256 tokens (séquences longues coupées) ou paddées avec le token `<pad>` (séquences courtes complétées). Cette standardisation est nécessaire pour le traitement en batch par le LSTM.
+
+Vocabulaire limité : Le vocabulaire est restreint aux 10 000 mots les plus fréquents + 2 tokens spéciaux (`<unk>`, `<pad>`). Les mots rares ou hors vocabulaire sont remplacés par `<unk>`, ce qui peut entraîner une perte d'information pour les critiques contenant un vocabulaire spécifique ou technique.
+
+Complexité linguistique : Les critiques contiennent du sarcasme, des négations complexes ("not bad" = positif), et des expressions idiomatiques qui rendent la tâche de classification difficile, nécessitant une bonne capture du contexte par le BiLSTM bidirectionnel.
 
 ### 1.3 Prétraitements (preprocessing) — _appliqués à train/val/test_
 
@@ -77,7 +91,9 @@ Listez précisément les opérations et paramètres (valeurs **fixes**) :
 
 - Vision : resize = __, center-crop = __, normalize = (mean=__, std=__)…
 - Audio : resample = __ Hz, mel-spectrogram (n_mels=__, n_fft=__, hop_length=__), AmplitudeToDB…
-- NLP : tokenizer = __, vocab = __, max_length = __, padding/truncation = __…
+- NLP : tokenizer = Tokenization par regex `\b\w+\b` (extraction des mots, conversion en minuscules), vocab = 10,002 tokens (10,000 mots les plus fréquents + `<unk>` + `<pad>`)
+  - `<pad>` : index 0 (pour padding)
+  - `<unk>` : index 1 (pour mots inconnus), max_length = 256 tokens, padding/truncation = Séquences > 256 tokens : **troncature** à 256 / Séquences < 256 tokens : **padding** avec token `<pad>` (index 0)
 - Séries : normalisation par canal, fenêtrage = __…
 
 **D6.** Quels **prétraitements** avez-vous appliqués (opérations + **paramètres exacts**) et **pourquoi** ?  
