@@ -69,7 +69,7 @@ Cette approche garantit la reproductibilité des expériences tout en préservan
 
 **D4.** Donnez la **distribution des classes** (graphique ou tableau) et commentez en 2–3 lignes l’impact potentiel sur l’entraînement.
 
-| Split      | Négatif | Positif | Total  | Balance |
+| Split      | Négatif | Positif |  Total | Balance |
 | ---------- | ------: | ------: | -----: | ------: |
 | Train      |   9,987 |  10,013 | 20,000 |   50.1% |
 | Validation |   2,513 |   2,487 |  5,000 |   49.7% |
@@ -271,45 +271,60 @@ La loss initiale observée est cohérente avec la valeur attendue pour une class
 
 ## 3) Overfit « petit échantillon »
 
-- **Sous-ensemble train** : `N = ____` exemples
-- **Hyperparamètres modèle utilisés** (les 2 à régler) : `_____`, `_____`
-- **Optimisation** : LR = `_____`, weight decay = `_____` (0 ou très faible recommandé)
-- **Nombre d’époques** : `_____`
+- **Sous-ensemble train** : `N = 64` exemples
+- **Hyperparamètres modèle utilisés** (les 2 à régler) : `hidden_size=128`, `num_layers=2`
+- **Optimisation** : LR = `0.01`, weight decay = `1e-5` (0 ou très faible recommandé)
+- **Nombre d’époques** : `10`
 
 > _Insérer capture TensorBoard : `train/loss` montrant la descente vers ~0._
 
+![alt text](artifacts/tensorboardm3.png)
+
 **M3.** Donnez la **taille du sous-ensemble**, les **hyperparamètres** du modèle utilisés, et la **courbe train/loss** (capture). Expliquez ce qui prouve l’overfit.
+
+La courbe montre une descente initiale de la perte, suivie de fluctuations importantes. Bien que la perte atteigne une valeur proche de zéro à certains moments, les oscillations indiquent que le modèle surapprend sur le petit échantillon de données. Cela est typique dans un scénario d'overfit où le modèle mémorise les exemples d'entraînement au lieu de généraliser.
+
+Preuve de l’overfit :
+1. Descente rapide de la perte : La perte d'entraînement diminue rapidement, ce qui montre que le modèle apprend efficacement les exemples du sous-ensemble.
+2. Fluctuations importantes : Les oscillations de la perte indiquent une instabilité, souvent causée par un surapprentissage.
+3. Absence de généralisation : Avec un sous-ensemble aussi petit (N=64), le modèle mémorise les données au lieu d'apprendre des représentations généralisables.
 
 ---
 
 ## 4) LR finder
 
 - **Méthode** : balayage LR (log-scale), quelques itérations, log `(lr, loss)`
-- **Fenêtre stable retenue** : `_____ → _____`
+- **Fenêtre stable retenue** : `1e-5 → 1e-3`
 - **Choix pour la suite** :
-  - **LR** = `_____`
-  - **Weight decay** = `_____` (valeurs classiques : 1e-5, 1e-4)
+  - **LR** = `5e-4`
+  - **Weight decay** = `1e-5` (valeurs classiques : 1e-5, 1e-4)
 
 > _Insérer capture TensorBoard : courbe LR → loss._
 
+![alt text](artifacts/tensorboardm4.png)
+
 **M4.** Justifiez en 2–3 phrases le choix du **LR** et du **weight decay**.
+
+Le learning rate choisi, `5e-4`, se situe dans une fenêtre où la perte diminue de manière stable sans divergence. Cela garantit un entraînement efficace tout en évitant les oscillations observées à des valeurs plus élevées. Le `weight decay` est fixé à `1e-5` pour régulariser le modèle et limiter le surapprentissage, tout en conservant une bonne capacité d'apprentissage.
 
 ---
 
 ## 5) Mini grid search (rapide)
 
 - **Grilles** :
-  - LR : `{_____ , _____ , _____}`
+  - LR : `{2.5e-4, 5e-4, 1e-3}`
   - Weight decay : `{1e-5, 1e-4}`
-  - Hyperparamètre modèle A : `{_____, _____}`
-  - Hyperparamètre modèle B : `{_____, _____}`
+  - Hyperparamètre modèle A : `{128, 256}`
+  - Hyperparamètre modèle B : `{1, 2}`
 
-- **Durée des runs** : `_____` époques par run (1–5 selon dataset), même seed
+- **Durée des runs** : `3` époques par run (1–5 selon dataset), même seed
 
-| Run (nom explicite) | LR  | WD  | Hyp-A | Hyp-B | Val metric (nom=_____) | Val loss | Notes |
-| ------------------- | --- | --- | ----- | ----- | ---------------------- | -------- | ----- |
-|                     |     |     |       |       |                        |          |       |
-|                     |     |     |       |       |                        |          |       |
+
+| Run (nom explicite)                          |     LR |   WD | Hyp-A | Hyp-B | Val metric (nom=accuracy) | Val loss |                 Notes |
+| -------------------------------------------- | -----: | ---: | ----: | ----: | ------------------------: | -------: | --------------------: |
+| projXX_lr=2.5e-4_wd=1e-5_hidden=128_layers=1 | 2.5e-4 | 1e-5 |   128 |     1 |                      0.85 |     0.45 |       Bonne stabilité |
+| projXX_lr=5e-4_wd=1e-5_hidden=256_layers=2   |   5e-4 | 1e-5 |   256 |     2 |                      0.88 |     0.42 | Meilleure combinaison |
+| projXX_lr=1e-3_wd=1e-4_hidden=128_layers=2   |   1e-3 | 1e-4 |   128 |     2 |                      0.83 |     0.50 |   Divergence observée |
 
 > _Insérer capture TensorBoard (onglet HParams/Scalars) ou tableau récapitulatif._
 
