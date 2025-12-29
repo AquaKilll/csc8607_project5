@@ -105,17 +105,25 @@ class BiLSTMAttention(nn.Module):
         return logits
 
 
-def build_model(config: dict):
-    """Construit et retourne le modèle selon la config."""
+def build_model(config: dict) -> nn.Module:
+    """
+    Construit et retourne le modèle BiLSTM avec Attention selon la configuration.
+
+    Args:
+        config (dict): Configuration complète du modèle (extrait de configs/config.yaml).
+
+    Returns:
+        nn.Module: Modèle BiLSTM avec Attention.
+    """
     model_config = config['model']
-    
-    # Récupération des paramètres
-    vocab_size = config['dataset'].get('vocab_size', 10000) + 2  # +2 pour <unk> et <pad>
-    embedding_dim = model_config.get('embedding_dim', 100)
-    hidden_size = model_config.get('hidden_size', 128)
-    num_layers = model_config.get('num_layers', 2)
-    dropout = model_config.get('dropout', 0.3)
-    bidirectional = model_config.get('bidirectional', True)
+
+    # Récupération des paramètres depuis la configuration
+    vocab_size = config['dataset']['vocab_size'] + 2  # +2 pour <unk> et <pad>
+    embedding_dim = model_config['embedding_dim']
+    hidden_size = model_config['hidden_sizes']
+    num_layers = model_config['num_layers']
+    dropout = model_config['dropout']
+    bidirectional = model_config['bidirectional']
     
     model = BiLSTMAttention(
         vocab_size=vocab_size,

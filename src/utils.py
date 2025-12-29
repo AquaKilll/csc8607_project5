@@ -15,7 +15,6 @@ import yaml
 import os
 from pathlib import Path
 
-
 def set_seed(seed: int) -> None:
     """Initialise les seeds (numpy/torch/python)."""
     random.seed(seed)

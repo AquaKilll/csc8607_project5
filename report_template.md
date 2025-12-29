@@ -217,39 +217,55 @@ meta["input_shape"]  # (256,)          - longueur de séquence attendue
 ### 2.1 Baselines
 
 **M0.**
-- **Classe majoritaire** — Métrique : `_____` → score = `_____`
-- **Prédiction aléatoire uniforme** — Métrique : `_____` → score = `_____`  
+- **Classe majoritaire** — Métrique : `Accuracy, F1-macro` → score = `0.4974, 03322`
+- **Prédiction aléatoire uniforme** — Métrique : `Accuracy, F1-macro` → score = `0.5144, 0.5144`  
 _Commentez en 2 lignes ce que ces chiffres impliquent._
+
+La baseline "classe majoritaire" donne une accuracy proche de 50% mais un F1 macro faible (~33%), indiquant un biais vers une seule classe. En revanche, la baseline "prédiction aléatoire uniforme" atteint un F1 macro de ~50%, ce qui représente un plancher minimal pour un dataset équilibré.
 
 ### 2.2 Architecture implémentée
 
 - **Description couche par couche** (ordre exact, tailles, activations, normalisations, poolings, résiduels, etc.) :
-  - Input → …
-  - Stage 1 (répéter N₁ fois) : …
-  - Stage 2 (répéter N₂ fois) : …
-  - Stage 3 (répéter N₃ fois) : …
-  - Tête (GAP / linéaire) → logits (dimension = nb classes)
+  - Input → (batch_size, 256)
+  - Couche initiale : Embedding(vocab_size=10,002, embedding_dim=300, padding_idx=1)
+  - Stage 1 (répéter N₁ fois) : LSTM(input_size=300, hidden_size=128, num_layers=2, bidirectional=True, batch_first=True, dropout=0.3)
+  - Stage 2 (répéter N₂ fois) : AttentionLayer(hidden_size=256)
+  - Tête (GAP / linéaire) → logits (dimension = nb classes) : Dropout(p=0.3) / Linear(in_features=256, out_features=1)
 
 - **Loss function** :
   - Multi-classe : CrossEntropyLoss
   - Multi-label : BCEWithLogitsLoss
   - (autre, si votre tâche l’impose)
 
-- **Sortie du modèle** : forme = __(batch_size, num_classes)__ (ou __(batch_size, num_attributes)__)
+- **Sortie du modèle** : forme = (batch_size, 1)
 
-- **Nombre total de paramètres** : `_____`
+- **Nombre total de paramètres** : `3 836 698`
 
 **M1.** Décrivez l’**architecture** complète et donnez le **nombre total de paramètres**.  
 Expliquez le rôle des **2 hyperparamètres spécifiques au modèle** (ceux imposés par votre sujet).
 
+1. hidden_size=128 :
+  - Rôle : Définit la taille des états cachés du LSTM, influençant la capacité du modèle à capturer des dépendances complexes dans les séquences.
+  - Impact : Une valeur plus grande permet de capturer des motifs plus riches, mais augmente le risque de surapprentissage et les besoins en mémoire.
+
+2. num_layers=2 :
+  - Rôle : Nombre de couches LSTM empilées, permettant d'apprendre des représentations plus abstraites à chaque couche.
+  - Impact : Plus de couches augmentent la profondeur du modèle, mais nécessitent plus de données pour éviter le surapprentissage.
+
+Ces choix permettent un bon compromis entre expressivité et stabilité, tout en respectant les contraintes du projet.
 
 ### 2.3 Perte initiale & premier batch
 
 - **Loss initiale attendue** (multi-classe) ≈ `-log(1/num_classes)` ; exemple 100 classes → ~4.61
-- **Observée sur un batch** : `_____`
-- **Vérification** : backward OK, gradients ≠ 0
+- **Observée sur un batch** : `0.6820`
+- **Vérification** : backward OK, gradients ≠ 0 (norme totale = `0.5527`)
 
 **M2.** Donnez la **loss initiale** observée et dites si elle est cohérente. Indiquez la forme du batch et la forme de sortie du modèle.
+
+La loss initiale observée est cohérente avec la valeur attendue pour une classification binaire utilisant `BCEWithLogitsLoss`. Les logits initiaux étant proches de 0, la perte est proche de $-\log(1/2) \approx 0.693$. La rétropropagation a été vérifiée, et les gradients ne sont pas nuls.
+
+- **Forme du batch** : `(64, 256)` (inputs)
+- **Forme de sortie du modèle** : `(64, 1)` (logits)
 
 ---
 
