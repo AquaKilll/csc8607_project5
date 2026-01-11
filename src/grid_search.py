@@ -19,6 +19,7 @@ from src.data_loading import get_dataloaders
 from src.model import build_model
 import yaml
 import itertools
+from tqdm import tqdm
 
 def grid_search(config_path):
     # Charger la configuration
@@ -28,11 +29,14 @@ def grid_search(config_path):
     # Charger les DataLoaders
     train_loader, val_loader, _, meta = get_dataloaders(config)
 
+    # Vérifier si CUDA est disponible
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
     # Hyperparamètres à tester
     hparams = config['hparams']
     lr_values = hparams['lr']  # Liste des valeurs de learning rate
     wd_values = hparams['weight_decay']  # Liste des valeurs de weight decay
-    hidden_sizes = hparams['hidden_sizes']  # Liste des tailles cachées
+    hidden_sizes = hparams['hidden_sizes']  # Correction : utiliser les tailles cachées comme liste d'entiers
     num_layers = hparams['num_layers']  # Liste des nombres de couches
 
     # Combinaisons des hyperparamètres
@@ -44,7 +48,7 @@ def grid_search(config_path):
     # Seed pour reproductibilité
     torch.manual_seed(config['train']['seed'])
 
-    for i, (lr, wd, hidden_size, num_layer) in enumerate(combinations):
+    for i, (lr, wd, hidden_size, num_layer) in enumerate(tqdm(combinations, desc="Grid Search Progress")):
         # Nom explicite du run
         run_name = f"lr={lr}_wd={wd}_hidden={hidden_size}_layers={num_layer}"
         writer.add_hparams({
@@ -58,16 +62,18 @@ def grid_search(config_path):
         model_config = config['model']
         model_config['hidden_sizes'] = hidden_size
         model_config['num_layers'] = num_layer
-        model = build_model(config)
+        model = build_model(config).to(device)  # Envoyer le modèle sur le GPU si disponible
         model.train()
 
         # Définir la loss et l'optimiseur
         criterion = nn.BCEWithLogitsLoss()
         optimizer = optim.Adam(model.parameters(), lr=lr, weight_decay=wd)
 
-        # Entraînement rapide (ex: 3 époques)
-        for epoch in range(3):
-            for inputs, labels in train_loader:
+        # Entraînement rapide (ex: 2 époques)
+        for epoch in range(2):
+            epoch_iterator = tqdm(train_loader, desc=f"Run {i+1}/{len(combinations)} - Epoch {epoch+1}")
+            for inputs, labels in epoch_iterator:
+                inputs, labels = inputs.to(device), labels.to(device)  # Envoyer les données sur le GPU
                 labels = labels.view(-1, 1)  # Redimensionner les labels
                 optimizer.zero_grad()
                 outputs = model(inputs)
@@ -80,6 +86,7 @@ def grid_search(config_path):
             val_correct = 0
             with torch.no_grad():
                 for inputs, labels in val_loader:
+                    inputs, labels = inputs.to(device), labels.to(device)  # Envoyer les données sur le GPU
                     labels = labels.view(-1, 1)
                     outputs = model(inputs)
                     loss = criterion(outputs, labels)

@@ -19,9 +19,15 @@ from src.utils import load_config
 import torch.nn as nn
 from torch.utils.tensorboard import SummaryWriter
 from torch.utils.data import DataLoader
+from tqdm import tqdm
 
-# Définir le device (CPU ou GPU)
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+# Vérification explicite de l'utilisation du GPU
+if not torch.cuda.is_available():
+    raise RuntimeError("CUDA n'est pas disponible. Assurez-vous que votre machine dispose d'un GPU compatible et que les pilotes CUDA sont correctement installés.")
+
+# Définir le device comme GPU
+device = torch.device("cuda")
+print("Le modèle utilise le GPU.")
 
 def test_initial_loss():
     # Charger la configuration
@@ -75,6 +81,56 @@ def train_overfit_small(train_loader, model, criterion, optimizer, num_epochs=10
         writer.add_scalar("train/loss", epoch_loss, epoch)
     writer.close()
 
+def train_full(train_loader, val_loader, model, criterion, optimizer, num_epochs, checkpoint_path):
+    writer = SummaryWriter(log_dir="runs/full_training")
+    best_val_accuracy = 0.0
+
+    for epoch in range(num_epochs):
+        model.train()
+
+        # Entraînement
+        epoch_loss = 0.0
+        train_loader = tqdm(train_loader, desc=f"Epoch {epoch+1}/{num_epochs} [Training]")
+        for inputs, labels in train_loader:
+            inputs, labels = inputs.to(device), labels.to(device)
+            optimizer.zero_grad()
+            logits = model(inputs)
+            loss = criterion(logits, labels.unsqueeze(1))
+            loss.backward()
+            optimizer.step()
+            epoch_loss += loss.item()
+        epoch_loss /= len(train_loader)
+        writer.add_scalar("train/loss", epoch_loss, epoch)
+
+        # Validation
+        model.eval()
+        val_loss = 0.0
+        correct = 0
+        total = 0
+        val_loader = tqdm(val_loader, desc=f"Epoch {epoch+1}/{num_epochs} [Validation]")
+        with torch.no_grad():
+            for inputs, labels in val_loader:
+                inputs, labels = inputs.to(device), labels.to(device)
+                logits = model(inputs)
+                loss = criterion(logits, labels.unsqueeze(1))
+                val_loss += loss.item()
+                predictions = (torch.sigmoid(logits) > 0.5).float()
+                correct += (predictions == labels.unsqueeze(1)).sum().item()
+                total += labels.size(0)
+        val_loss /= len(val_loader)
+        val_accuracy = correct / total
+        writer.add_scalar("val/loss", val_loss, epoch)
+        writer.add_scalar("val/accuracy", val_accuracy, epoch)
+
+        print(f"Epoch {epoch+1}/{num_epochs}, Train Loss: {epoch_loss}, Val Loss: {val_loss}, Val Accuracy: {val_accuracy}")
+
+        # Sauvegarder le meilleur modèle
+        if val_accuracy > best_val_accuracy:
+            best_val_accuracy = val_accuracy
+            torch.save(model.state_dict(), checkpoint_path)
+
+    writer.close()
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", type=str, required=True)
@@ -82,6 +138,11 @@ def main():
     parser.add_argument("--overfit_small", action="store_true")
     parser.add_argument("--max_epochs", type=int, default=None)
     parser.add_argument("--max_steps", type=int, default=None)
+    parser.add_argument("--batch_size", type=int, default=64)
+    parser.add_argument("--lr", type=float, default=5e-4)
+    parser.add_argument("--weight_decay", type=float, default=1e-5)
+    parser.add_argument("--hidden_size", type=int, default=256)
+    parser.add_argument("--num_layers", type=int, default=2)
     # Ajoutez d'autres arguments si nécessaire (batch_size, lr, etc.)
     args = parser.parse_args()
     # À implémenter par l'étudiant·e :
@@ -116,8 +177,26 @@ def main():
 
         # Entraîner le modèle
         train_overfit_small(train_loader, model, criterion, optimizer, num_epochs=10)
+    
     else:
-        raise NotImplementedError("L'entraînement sur l'ensemble complet doit être implémenté par l'étudiant·e.")
+        # Charger les DataLoaders pour l'entraînement complet
+        train_loader, val_loader, _, _ = get_dataloaders(config)
+
+        # Charger le modèle, la loss et l'optimiseur
+        model = BiLSTMAttention(
+            vocab_size=10002,
+            embedding_dim=config['model']['embedding_dim'],
+            hidden_size=args.hidden_size,
+            num_layers=args.num_layers,
+            dropout=config['model']['dropout'],
+            bidirectional=config['model']['bidirectional']
+        ).to(device)
+        criterion = nn.BCEWithLogitsLoss()
+        optimizer = torch.optim.Adam(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
+
+        # Entraîner le modèle
+        checkpoint_path = "artifacts/best.ckpt"
+        train_full(train_loader, val_loader, model, criterion, optimizer, args.max_epochs, checkpoint_path)
 
 if __name__ == "__main__":
     test_initial_loss()

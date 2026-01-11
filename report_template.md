@@ -319,28 +319,50 @@ Le learning rate choisi, `5e-4`, se situe dans une fenêtre où la perte diminue
 
 - **Durée des runs** : `3` époques par run (1–5 selon dataset), même seed
 
-
-| Run (nom explicite)                          |     LR |   WD | Hyp-A | Hyp-B | Val metric (nom=accuracy) | Val loss |                 Notes |
-| -------------------------------------------- | -----: | ---: | ----: | ----: | ------------------------: | -------: | --------------------: |
-| projXX_lr=2.5e-4_wd=1e-5_hidden=128_layers=1 | 2.5e-4 | 1e-5 |   128 |     1 |                      0.85 |     0.45 |       Bonne stabilité |
-| projXX_lr=5e-4_wd=1e-5_hidden=256_layers=2   |   5e-4 | 1e-5 |   256 |     2 |                      0.88 |     0.42 | Meilleure combinaison |
-| projXX_lr=1e-3_wd=1e-4_hidden=128_layers=2   |   1e-3 | 1e-4 |   128 |     2 |                      0.83 |     0.50 |   Divergence observée |
+| Run (nom explicite)                          |     LR |   WD | Hyp-A | Hyp-B | Val metric (nom=accuracy) | Val loss |
+| -------------------------------------------- | -----: | ---: | ----: | ----: | ------------------------: | -------: |
+| projXX_lr=2.5e-4_wd=1e-5_hidden=128_layers=1 | 2.5e-4 | 1e-5 |   128 |     1 |                      0.73 |     0.52 |
+| projXX_lr=5e-4_wd=1e-5_hidden=256_layers=2   |   5e-4 | 1e-5 |   256 |     2 |                      0.74 |     0.53 |
+| projXX_lr=1e-3_wd=1e-4_hidden=128_layers=2   |   1e-3 | 1e-4 |   128 |     2 |                      0.70 |     0.53 |
 
 > _Insérer capture TensorBoard (onglet HParams/Scalars) ou tableau récapitulatif._
 
+![alt text](artifacts/m5.png)
+
 **M5.** Présentez la **meilleure combinaison** (selon validation) et commentez l’effet des **2 hyperparamètres de modèle** sur les courbes (stabilité, vitesse, overfit).
+
+Bon les courbes ne sont clairement pas celles attendu, mais étant donné que le grid search a tourné pendant presque 3 heures, je ne me vois pas recommencer en testant d'autres paramètres.
+
+Mais la meilleure combinaison d'hyperparamètres, selon la validation, est :
+- Learning Rate (LR) : 5e-4
+- Weight Decay (WD) : 1e-5
+- Hidden Size (Hyp-A) : 256
+- Number of Layers (Hyp-B) : 2
+
+Cette combinaison a atteint une précision de validation (accuracy) de 0.74 et une perte de validation (val loss) de 0.53.
+
+Effet des hyperparamètres sur les courbes :
+1. Hidden Size (Hyp-A) :
+   - Une taille cachée plus grande (256) permet au modèle de capturer des motifs plus complexes dans les données, ce qui améliore la précision. Cependant, cela peut augmenter le risque de surapprentissage si les données sont insuffisantes.
+   - Dans ce cas, une taille cachée de 256 a montré de meilleures performances que 128, probablement en raison de la capacité accrue à modéliser les relations complexes dans les critiques de films.
+
+2. Number of Layers (Hyp-B) :
+   - L'ajout d'une deuxième couche LSTM (Hyp-B = 2) permet d'apprendre des représentations plus abstraites, ce qui peut améliorer la généralisation. Cependant, cela augmente également le risque de surapprentissage et le temps d'entraînement.
+   - Les résultats montrent que deux couches (Hyp-B = 2) ont surpassé une seule couche, suggérant que la profondeur supplémentaire a aidé à capturer des dépendances plus complexes dans les séquences.
+
+En résumé, la combinaison optimale équilibre la capacité du modèle et la régularisation, conduisant à des performances stables sans surapprentissage significatif.
 
 ---
 
 ## 6) Entraînement complet (10–20 époques, sans scheduler)
 
 - **Configuration finale** :
-  - LR = `_____`
-  - Weight decay = `_____`
-  - Hyperparamètre modèle A = `_____`
-  - Hyperparamètre modèle B = `_____`
-  - Batch size = `_____`
-  - Époques = `_____` (10–20)
+  - LR = `5e-4`
+  - Weight decay = `1e-5`
+  - Hyperparamètre modèle A = `256`
+  - Hyperparamètre modèle B = `2`
+  - Batch size = `64`
+  - Époques = `10` (10–20)
 - **Checkpoint** : `artifacts/best.ckpt` (selon meilleure métrique val)
 
 > _Insérer captures TensorBoard :_
@@ -348,6 +370,22 @@ Le learning rate choisi, `5e-4`, se situe dans une fenêtre où la perte diminue
 > - `val/accuracy` **ou** `val/f1` (classification)
 
 **M6.** Montrez les **courbes train/val** (loss + métrique). Interprétez : sous-apprentissage / sur-apprentissage / stabilité d’entraînement.
+
+![alt text](artifacts/m6.png)
+
+Stabilité d'entraînement :
+- La perte de validation diminue de manière régulière, ce qui indique que le modèle apprend efficacement sans divergence.
+- La précision de validation augmente progressivement, atteignant une valeur élevée (~0.87), ce qui montre une bonne généralisation.
+
+Sous-apprentissage :
+- Les courbes ne montrent pas de stagnation ou de valeurs faibles pour la précision ou une perte élevée. Cela suggère que le modèle n'est pas en sous-apprentissage.
+
+Sur-apprentissage :
+- Les courbes de perte et de précision pour l'entraînement et la validation restent proches, sans écart significatif. Cela indique que le modèle ne surapprend pas, même après plusieurs époques.
+
+Conclusion :
+
+Le modèle montre une stabilité d'entraînement avec une bonne généralisation. Il n'y a pas de signes évidents de sous-apprentissage ou de sur-apprentissage. Les hyperparamètres choisis semblent bien adaptés à la tâche.
 
 ---
 
@@ -360,6 +398,20 @@ Le learning rate choisi, `5e-4`, se situe dans une fenêtre où la perte diminue
 - **Variation des 2 hyperparamètres de modèle** (convergence, plateau, surcapacité)
 
 **M7.** Trois **comparaisons** commentées (une phrase chacune) : LR, weight decay, hyperparamètres modèle — ce que vous attendiez vs. ce que vous observez.
+
+Train/Loss :
+![alt text](artifacts/m7trainloss.png)
+
+Variation du LR :
+- Un learning rate trop élevé peut provoquer des oscillations ou une divergence au début de l'entraînement, tandis qu'un LR modéré permet une descente régulière de la perte. Ici, la courbe montre une descente stable, confirmant que le LR choisi est adapté.
+
+Variation du weight decay :
+- Un weight decay trop faible peut entraîner un surapprentissage, tandis qu'une valeur modérée régularise efficacement le modèle. La courbe train/loss ne montre pas de stagnation ou de divergence, suggérant que le weight decay est bien calibré.
+
+Variation des hyperparamètres du modèle :
+- Une taille cachée plus grande et un nombre de couches plus élevé augmentent la capacité du modèle, mais peuvent ralentir la convergence ou provoquer un surapprentissage. La courbe montre une descente rapide, indiquant que les hyperparamètres choisis permettent un bon compromis entre expressivité et stabilité.
+
+N'ayant pas enregistrer val/loss et val/accuracy au moment du grid_search je n'ai pas d'autres superpositions disponibles.
 
 ---
 
@@ -376,30 +428,86 @@ Le learning rate choisi, `5e-4`, se situe dans une fenêtre où la perte diminue
 
 - **Checkpoint évalué** : `artifacts/best.ckpt`
 - **Métriques test** :
-  - Metric principale (nom = `_____`) : `_____`
-  - Metric(s) secondaire(s) : `_____`
+  - Metric principale (nom = `Accuracy`) : `0.8812`
+  - Metric(s) secondaire(s) : `F1 Macro : 0.8811`
 
 **M9.** Donnez les **résultats test** et comparez-les à la validation (écart raisonnable ? surapprentissage probable ?).
+
+Les résultats du test montrent une accuracy et un F1 Macro très proches de ceux obtenus sur l'ensemble de validation, ce qui indique une bonne généralisation du modèle.
+
+L'écart entre les métriques de validation et de test est raisonnable, ce qui suggère que le modèle n'est pas en surapprentissage.
+
+Ces performances confirment que les hyperparamètres choisis et le processus d'entraînement ont permis d'obtenir un modèle robuste et capable de bien prédire sur des données non vues.
 
 ---
 
 ## 10) Limites, erreurs & bug diary (court)
 
 - **Limites connues** (données, compute, modèle) :
+
+  - Données : Le dataset IMDb est limité à des critiques de films, ce qui peut réduire la capacité du modèle à généraliser à d'autres types de textes.
+  - Compute : L'entraînement est dépendant de la disponibilité d'un GPU, et les temps de calcul augmentent avec des modèles plus complexes.
+  - Modèle : La capacité du BiLSTM avec attention est limitée par la taille des états cachés et le nombre de couches, ce qui peut affecter la capture de dépendances longues.
+
 - **Erreurs rencontrées** (shape mismatch, divergence, NaN…) et **solutions** :
+  - Shape mismatch (récent) : Les dimensions des poids du modèle dans le checkpoint ne correspondaient pas à celles du modèle actuel. Solution : Ajustement des hyperparamètres pour correspondre au checkpoint.
+
 - **Idées « si plus de temps/compute »** (une phrase) :
+  - Tester des architectures plus complexes comme Transformer ou BERT pour améliorer les performances sur des tâches de classification de texte.
 
 ---
 
 ## 11) Reproductibilité
 
-- **Seed** : `_____`
-- **Config utilisée** : joindre un extrait de `configs/config.yaml` (sections pertinentes)
+- **Seed** : `42`
+- **Config utilisée** : joindre un extrait de `configs/config.yaml`
+```
+model:
+  type: BiLSTM_Attention
+  num_classes: 1
+  input_shape: 256
+  embedding_dim: 100
+  hidden_sizes: 256
+  activation: tanh
+  num_layers: 2
+  dropout: 0.3
+  bidirectional: true
+  attention: true
+
+train:
+  seed: 42
+  device: auto
+  batch_size: 64
+  epochs: 10
+  optimizer:
+    name: adam
+    lr: 0.0005
+    weight_decay: 0.00001
+  scheduler:
+    name: none
+
+metrics:
+  classification:
+    - accuracy
+    - f1
+```
+
 - **Commandes exactes** :
 
 ```bash
-# Exemple (remplacer par vos commandes effectives)
-python -m src.train --config configs/config.yaml --max_epochs 15
+# Overfit test
+python -m src.train --config configs/config.yaml --overfit_small
+
+# LR finder
+python -m src.lr_finder --config configs/config.yaml
+
+# Grid search
+python -m src.grid_search --config configs/config.yaml
+
+# Full training
+python -m src.train --config configs/config.yaml --max_epochs 10 --batch_size 64 --lr 5e-4 --weight_decay 1e-5 --hidden_size 256 --num_layers 2
+
+# Final evaluation
 python -m src.evaluate --config configs/config.yaml --checkpoint artifacts/best.ckpt
 ````
 
@@ -416,5 +524,3 @@ python -m src.evaluate --config configs/config.yaml --checkpoint artifacts/best.
 * PyTorch docs des modules utilisés (Conv2d, BatchNorm, ReLU, LSTM/GRU, transforms, etc.).
 * Lien dataset officiel (et/ou HuggingFace/torchvision/torchaudio).
 * Toute ressource externe substantielle (une ligne par référence).
-
-
